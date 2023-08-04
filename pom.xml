@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>cn.wode490390.nukkit</groupId>
+    <artifactId>radio</artifactId>
+    <packaging>jar</packaging>
+    <version>1.2.0</version>
+    <name>Radio</name>
+    <description>Radio plugin for Nukkit</description>
+    <url>https://wode490390.cn/</url>
+    <inceptionYear>2018</inceptionYear>
+
+    <licenses>
+        <license>
+            <name>GNU General Public License, Version 3.0</name>
+            <url>http://www.gnu.org/licenses/gpl.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <issueManagement>
+        <system>GitHub</system>
+        <url>https://github.com/wode490390/Radio/issues</url>
+    </issueManagement>
+
+    <ciManagement>
+        <system>CircleCI</system>
+        <url>https://circleci.com/gh/wode490390/Radio</url>
+    </ciManagement>
+
+    <scm>
+        <connection>scm:git:https://github.com/wode490390/Radio.git</connection>
+        <developerConnection>scm:git:git@github.com:wode490390/Radio.git</developerConnection>
+        <url>https://github.com/wode490390/Radio</url>
+    </scm>
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>github-releases</name>
+            <url>https://maven.pkg.github.com/wode490390/Radio</url>
+        </repository>
+    </distributionManagement>
+
+    <properties>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>nukkitx-repo</id>
+            <url>http://repo.nukkitx.com/main/</url>
+        </repository>
+        <repository>
+            <id>mulesoft-public</id>
+            <url>http://repository.mulesoft.org/nexus/content/repositories/public/</url>
+        </repository>
+    </repositories>
+
+    <dependencies>
+        <dependency>
+            <groupId>cn.nukkit</groupId>
+            <artifactId>nukkit</artifactId>
+            <version>1.0-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <defaultGoal>clean package</defaultGoal>
+        <finalName>wodeRadio-${project.version}</finalName>
+        <resources>
+            <resource>
+                <targetPath>.</targetPath>
+                <filtering>true</filtering>
+                <directory>${basedir}/src/main/resources</directory>
+                <includes>
+                    <include>*.yml</include>
+                </includes>
+            </resource>
+        </resources>
+    </build>
+</project>
