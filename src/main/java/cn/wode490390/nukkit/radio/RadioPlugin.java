@@ -70,8 +70,6 @@ public class RadioPlugin extends PluginBase implements Listener {
         this.delayTicks = config.getInt(node, 20);
         node = "autoplay";
         this.autoplay = config.getBoolean(node, true);
-        node = "create-resource-pack";
-        boolean createResourcePack = config.getBoolean(node, true);
         node = "play-mode";
         try {
             if (config.getString(node).trim().equalsIgnoreCase("random")) {
@@ -91,57 +89,55 @@ public class RadioPlugin extends PluginBase implements Listener {
             throw new RuntimeException(e);
         }
 
-        if(createResourcePack){
-            createdResourcePackName = config.getString("created-resource-pack-name", "Radio-ResourcePack");
+        createdResourcePackName = config.getString("created-resource-pack-name", "Radio-ResourcePack");
 
-            HashFunction hasher = Hashing.md5();
-            List<ResourcePack> packs = new ArrayList<>();
-            try {
-                Files.walk(musicPath, 1).filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && path.toString().toLowerCase().endsWith(".ogg")).forEach(path -> {
-                    try (InputStream fis = Files.newInputStream(path, StandardOpenOption.READ)) {
-                        byte[] bytes = new byte[fis.available()];
-                        fis.read(bytes);
+        HashFunction hasher = Hashing.md5();
+        List<ResourcePack> packs = new ArrayList<>();
+        try {
+            Files.walk(musicPath, 1).filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && path.toString().toLowerCase().endsWith(".ogg")).forEach(path -> {
+                try (InputStream fis = Files.newInputStream(path, StandardOpenOption.READ)) {
+                    byte[] bytes = new byte[fis.available()];
+                    fis.read(bytes);
 
-                        String md5 = hasher.hashBytes(bytes).toString();
-                        double seconds = new OggInfoReader().read(new RandomAccessFile(path.toFile(), "r")).getPreciseTrackLength();
-                        String name = path.getFileName().toString();
-                        IMusic music = new Music(md5, (long) Math.ceil(seconds * 1000), name.substring(0, name.length() - 4));
+                    String md5 = hasher.hashBytes(bytes).toString();
+                    double seconds = new OggInfoReader().read(new RandomAccessFile(path.toFile(), "r")).getPreciseTrackLength();
+                    String name = path.getFileName().toString();
+                    IMusic music = new Music(md5, (long) Math.ceil(seconds * 1000), name.substring(0, name.length() - 4));
 
-                        packs.add(new MusicResourcePack(md5, bytes));
-                        this.global.addMusic(music);
-                    } catch (Exception ignore) {
+                    packs.add(new MusicResourcePack(md5, bytes));
+                    this.global.addMusic(music);
+                } catch (Exception ignore) {
 
-                    }
-                });
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+                }
+            });
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-            if (!packs.isEmpty()) {
-                List<IMusic> playlist = this.global.getPlaylist();
-                StringJoiner joiner = new StringJoiner(", ", "Successfully loaded " + playlist.size() + " music: ", "");
-                playlist.forEach(music -> joiner.add(music.getName()));
-                this.getLogger().info(joiner.toString());
+        if (!packs.isEmpty()) {
+            List<IMusic> playlist = this.global.getPlaylist();
+            StringJoiner joiner = new StringJoiner(", ", "Successfully loaded " + playlist.size() + " music: ", "");
+            playlist.forEach(music -> joiner.add(music.getName()));
+            this.getLogger().info(joiner.toString());
 
-                ResourcePackManager manager = this.getServer().getResourcePackManager();
-                synchronized (manager) {
-                    try {
-                        Field f1 = ResourcePackManager.class.getDeclaredField("resourcePacksById");
-                        f1.setAccessible(true);
-                        Map<UUID, ResourcePack> byId = (Map<UUID, ResourcePack>) f1.get(manager);
-                        packs.forEach(pack -> byId.put(pack.getPackId(), pack));
+            ResourcePackManager manager = this.getServer().getResourcePackManager();
+            synchronized (manager) {
+                try {
+                    Field f1 = ResourcePackManager.class.getDeclaredField("resourcePacksById");
+                    f1.setAccessible(true);
+                    Map<UUID, ResourcePack> byId = (Map<UUID, ResourcePack>) f1.get(manager);
+                    packs.forEach(pack -> byId.put(pack.getPackId(), pack));
 
-                        Field f2 = ResourcePackManager.class.getDeclaredField("resourcePacks");
-                        f2.setAccessible(true);
-                        packs.addAll((HashSet<ResourcePack>) f2.get(manager));
+                    Field f2 = ResourcePackManager.class.getDeclaredField("resourcePacks");
+                    f2.setAccessible(true);
+                    packs.addAll((HashSet<ResourcePack>) f2.get(manager));
 
-                        Server server = this.getServer();
-                        Field pluginResManager = Server.class.getDeclaredField("resourcePackManager");
-                        pluginResManager.setAccessible(true);
-                        pluginResManager.set(server, new ResourcePackManager(new CustomResourcePackLoader(packs)));
-                    } catch (NoSuchFieldException | IllegalAccessException e) {
-                        throw new RuntimeException(e);
-                    }
+                    Server server = this.getServer();
+                    Field pluginResManager = Server.class.getDeclaredField("resourcePackManager");
+                    pluginResManager.setAccessible(true);
+                    pluginResManager.set(server, new ResourcePackManager(new CustomResourcePackLoader(packs)));
+                } catch (NoSuchFieldException | IllegalAccessException e) {
+                    throw new RuntimeException(e);
                 }
             }
         }
