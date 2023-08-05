@@ -5,6 +5,7 @@ import cn.nukkit.Server;
 import cn.nukkit.event.EventHandler;
 import cn.nukkit.event.Listener;
 import cn.nukkit.event.player.PlayerFormRespondedEvent;
+import cn.nukkit.event.player.PlayerJoinEvent;
 import cn.nukkit.event.player.PlayerLocallyInitializedEvent;
 import cn.nukkit.event.player.PlayerQuitEvent;
 import cn.nukkit.form.element.ElementLabel;
@@ -42,7 +43,7 @@ import java.util.*;
 
 public class RadioPlugin extends PluginBase implements Listener {
 
-    private boolean autoplay = true;
+    private boolean autoplay;
 
     public static RadioPlugin radioPlugin;
 
@@ -51,6 +52,8 @@ public class RadioPlugin extends PluginBase implements Listener {
     private final Long2IntMap uiWindows = new Long2IntOpenHashMap();
 
     private int delayTicks;
+
+    public static String createdResourcePackName;
 
     @Override
     public void onEnable() {
@@ -66,11 +69,9 @@ public class RadioPlugin extends PluginBase implements Listener {
         String node = "delay-ticks";
         this.delayTicks = config.getInt(node, 20);
         node = "autoplay";
-        try {
-            this.autoplay = config.getBoolean(node, this.autoplay);
-        } catch (Exception e) {
-            this.logConfigException(node, e);
-        }
+        this.autoplay = config.getBoolean(node, true);
+        node = "create-resource-pack";
+        boolean createResourcePack = config.getBoolean(node, true);
         node = "play-mode";
         try {
             if (config.getString(node).trim().equalsIgnoreCase("random")) {
@@ -90,61 +91,65 @@ public class RadioPlugin extends PluginBase implements Listener {
             throw new RuntimeException(e);
         }
 
-        HashFunction hasher = Hashing.md5();
-        List<ResourcePack> packs = new ArrayList<>();
-        try {
-            Files.walk(musicPath, 1).filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && path.toString().toLowerCase().endsWith(".ogg")).forEach(path -> {
-                try (InputStream fis = Files.newInputStream(path, StandardOpenOption.READ)) {
-                    byte[] bytes = new byte[fis.available()];
-                    fis.read(bytes);
+        if(createResourcePack){
+            createdResourcePackName = config.getString("created-resource-pack-name", "Radio-ResourcePack");
 
-                    String md5 = hasher.hashBytes(bytes).toString();
-                    double seconds = new OggInfoReader().read(new RandomAccessFile(path.toFile(), "r")).getPreciseTrackLength();
-                    String name = path.getFileName().toString();
-                    IMusic music = new Music(md5, (long) Math.ceil(seconds * 1000), name.substring(0, name.length() - 4));
+            HashFunction hasher = Hashing.md5();
+            List<ResourcePack> packs = new ArrayList<>();
+            try {
+                Files.walk(musicPath, 1).filter(path -> Files.isRegularFile(path, LinkOption.NOFOLLOW_LINKS) && path.toString().toLowerCase().endsWith(".ogg")).forEach(path -> {
+                    try (InputStream fis = Files.newInputStream(path, StandardOpenOption.READ)) {
+                        byte[] bytes = new byte[fis.available()];
+                        fis.read(bytes);
 
-                    packs.add(new MusicResourcePack(md5, bytes));
-                    this.global.addMusic(music);
-                } catch (Exception ignore) {
+                        String md5 = hasher.hashBytes(bytes).toString();
+                        double seconds = new OggInfoReader().read(new RandomAccessFile(path.toFile(), "r")).getPreciseTrackLength();
+                        String name = path.getFileName().toString();
+                        IMusic music = new Music(md5, (long) Math.ceil(seconds * 1000), name.substring(0, name.length() - 4));
 
-                }
-            });
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+                        packs.add(new MusicResourcePack(md5, bytes));
+                        this.global.addMusic(music);
+                    } catch (Exception ignore) {
 
-        if (!packs.isEmpty()) {
-            List<IMusic> playlist = this.global.getPlaylist();
-            StringJoiner joiner = new StringJoiner(", ", "Successfully loaded " + playlist.size() + " music: ", "");
-            playlist.forEach(music -> joiner.add(music.getName()));
-            this.getLogger().info(joiner.toString());
-
-            ResourcePackManager manager = this.getServer().getResourcePackManager();
-            synchronized (manager) {
-                try {
-                    Field f1 = ResourcePackManager.class.getDeclaredField("resourcePacksById");
-                    f1.setAccessible(true);
-                    Map<UUID, ResourcePack> byId = (Map<UUID, ResourcePack>) f1.get(manager);
-                    packs.forEach(pack -> byId.put(pack.getPackId(), pack));
-
-                    Field f2 = ResourcePackManager.class.getDeclaredField("resourcePacks");
-                    f2.setAccessible(true);
-                    packs.addAll((HashSet<ResourcePack>) f2.get(manager));
-
-                    Server server = this.getServer();
-                    Field pluginResManager = Server.class.getDeclaredField("resourcePackManager");
-                    pluginResManager.setAccessible(true);
-                    pluginResManager.set(server, new ResourcePackManager(new CustomResourcePackLoader(packs)));
-                } catch (NoSuchFieldException | IllegalAccessException e) {
-                    throw new RuntimeException(e);
-                }
+                    }
+                });
+            } catch (IOException e) {
+                throw new RuntimeException(e);
             }
 
-            this.getServer().getPluginManager().registerEvents(this, this);
+            if (!packs.isEmpty()) {
+                List<IMusic> playlist = this.global.getPlaylist();
+                StringJoiner joiner = new StringJoiner(", ", "Successfully loaded " + playlist.size() + " music: ", "");
+                playlist.forEach(music -> joiner.add(music.getName()));
+                this.getLogger().info(joiner.toString());
+
+                ResourcePackManager manager = this.getServer().getResourcePackManager();
+                synchronized (manager) {
+                    try {
+                        Field f1 = ResourcePackManager.class.getDeclaredField("resourcePacksById");
+                        f1.setAccessible(true);
+                        Map<UUID, ResourcePack> byId = (Map<UUID, ResourcePack>) f1.get(manager);
+                        packs.forEach(pack -> byId.put(pack.getPackId(), pack));
+
+                        Field f2 = ResourcePackManager.class.getDeclaredField("resourcePacks");
+                        f2.setAccessible(true);
+                        packs.addAll((HashSet<ResourcePack>) f2.get(manager));
+
+                        Server server = this.getServer();
+                        Field pluginResManager = Server.class.getDeclaredField("resourcePackManager");
+                        pluginResManager.setAccessible(true);
+                        pluginResManager.set(server, new ResourcePackManager(new CustomResourcePackLoader(packs)));
+                    } catch (NoSuchFieldException | IllegalAccessException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
         }
 
         this.getServer().getCommandMap().register("radio", new RadioCommand(this));
         this.getServer().getCommandMap().register("radio", new RadioAdminCommand(this));
+
+        this.getServer().getPluginManager().registerEvents(this, this);
 
         if(this.getServer().getPluginManager().getPlugin("Tips") != null){
             Api.registerVariables("wode_radio", TipsVariable.class);

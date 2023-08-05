@@ -6,3 +6,7 @@ autoplay: true
 play-mode: random
 
 delay-ticks: 20
+
+create-resource-pack: true
+
+created-resource-pack-name: "Radio-ResourcePack"

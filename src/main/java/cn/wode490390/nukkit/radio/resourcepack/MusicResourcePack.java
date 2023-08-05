@@ -1,6 +1,7 @@
 package cn.wode490390.nukkit.radio.resourcepack;
 
 import cn.nukkit.resourcepacks.ResourcePack;
+import cn.wode490390.nukkit.radio.RadioPlugin;
 import com.google.common.base.Preconditions;
 
 import java.io.ByteArrayOutputStream;
@@ -66,7 +67,7 @@ public class MusicResourcePack implements ResourcePack {
             builder = new StringBuilder(228);
             builder.append("{\"format_version\":1,\"header\":{\"uuid\":\"");
             builder.append(uuid);
-            builder.append("\",\"name\":\"\",\"version\":[0,0,1],\"description\":\"\"},\"modules\":[{\"description\":\"\",\"version\":[0,0,1],\"uuid\":\"");
+            builder.append("\",\"name\":\"").append(RadioPlugin.createdResourcePackName).append("\",\"version\":[0,0,1],\"description\":\"\"},\"modules\":[{\"description\":\"\",\"version\":[0,0,1],\"uuid\":\"");
             builder.append(UUID.nameUUIDFromBytes(uuid.getBytes(StandardCharsets.US_ASCII)));
             builder.append("\",\"type\":\"resources\"}]}");
             buffer = builder.toString().getBytes();
